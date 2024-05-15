@@ -116,28 +116,34 @@ def create_vggmodel1(numclasses, img_shape):
     
 class VGG(nn.Module):
     def __init__(self, features, output_dim):
-        super().__init__()
+        super(VGG, self).__init__()
         
         self.features = features
         
-        self.avgpool = nn.AdaptiveAvgPool2d(7)
+        self.avgpool = nn.AdaptiveAvgPool2d((7,7))
         
         self.classifier = nn.Sequential(
             nn.Linear(512 * 7 * 7, 4096),
-            nn.ReLU(inplace = True),
-            nn.Dropout(0.5),
+            nn.ReLU(inplace=TRUE),
+            nn.BatchNorm1d(4096),  # add batch normalization
+            nn.Dropout(0.3), # lowered dropout rate
             nn.Linear(4096, 4096),
-            nn.ReLU(inplace = True),
-            nn.Dropout(0.5),
+            nn.ReLU(inplace=TRUE),
+            nn.BatchNorm1d(4096),
+            nn.Dropout(0.3),
             nn.Linear(4096, output_dim),
         )
 
     def forward(self, x):
         x = self.features(x)
         x = self.avgpool(x)
-        h = x.view(x.shape[0], -1)
+        h = x.view(x.size(0), -1)
         x = self.classifier(h)
         return x, h
+
+    # define optimizer and scheduler
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
 
 def create_vggcustommodel(numclasses, img_shape):
     #Each item in the list is either 'M', which denotes a max pooling layer, or an integer, which denotes a convolutional layer with that many filters.
@@ -384,37 +390,37 @@ def create_lenet(numclasses, img_shape):
 
 class AlexNet(nn.Module):
     def __init__(self, output_dim):
-        super().__init__()
+        super(AlexNet, self).__init__()
         
         self.features = nn.Sequential(
-            nn.Conv2d(3, 64, 3, 2, 1), #in_channels, out_channels, kernel_size, stride, padding
-            nn.MaxPool2d(2), #kernel_size
-            nn.ReLU(inplace = True),
-            nn.Conv2d(64, 192, 3, padding = 1),
-            nn.MaxPool2d(2),
-            nn.ReLU(inplace = True),
-            nn.Conv2d(192, 384, 3, padding = 1),
-            nn.ReLU(inplace = True),
-            nn.Conv2d(384, 256, 3, padding = 1),
-            nn.ReLU(inplace = True),
-            nn.Conv2d(256, 256, 3, padding = 1),
-            nn.MaxPool2d(2),
-            nn.ReLU(inplace = True)
+            nn.Conv2d(3, 64, kernel_size=11, stride=4, padding=2), #in_channels, out_channels
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2),
+            nn.Conv2d(64, 192, kernel_size=5, padding=2),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2),
+            nn.Conv2d(192, 384, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(384, 256, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(256, 256, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2),
         )
         
         self.classifier = nn.Sequential(
             nn.Dropout(0.5),
             nn.Linear(256 * 2 * 2, 4096),
-            nn.ReLU(inplace = True),
+            nn.ReLU(inplace=True),
             nn.Dropout(0.5),
             nn.Linear(4096, 4096),
-            nn.ReLU(inplace = True),
+            nn.ReLU(inplace=True),
             nn.Linear(4096, output_dim),
         )
 
     def forward(self, x):
         x = self.features(x)
-        h = x.view(x.shape[0], -1)
+        h = x.view(x.size(0), -1)
         x = self.classifier(h)
         return x, h
 
@@ -529,4 +535,4 @@ def create_torchvisionmodel(modulename, numclasses, freezeparameters=True, pretr
         
         return pretrained_model
     else:
-        print('Model name not exist.')
+        print('Model name does not exist.')
